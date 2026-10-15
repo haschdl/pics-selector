@@ -1,0 +1,11 @@
+.venv/
+node_modules/
+frontend/dist/
+.cache/
+data/
+.npm-cache/
+__pycache__/
+*.pyc
+.DS_Store
+pics/*
+!pics/.gitkeep
