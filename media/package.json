@@ -1,0 +1,14 @@
+{
+  "name": "keepers-media",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.3",
+  "scripts": {
+    "start": "bun run server.ts"
+  },
+  "dependencies": {
+    "@vercel/blob": "2.8.2",
+    "google-auth-library": "11.3.0",
+    "sharp": "0.35.5"
+  }
+}
