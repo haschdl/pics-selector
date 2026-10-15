@@ -5,6 +5,12 @@
       "root": "backend",
       "framework": "fastapi"
     },
+    "media": {
+      "root": "media",
+      "framework": "bun",
+      "entrypoint": "server.ts",
+      "installCommand": "bun install"
+    },
     "frontend": {
       "root": "frontend",
       "framework": "vite",
@@ -13,6 +19,12 @@
     }
   },
   "rewrites": [
+    {
+      "source": "/media/(.*)",
+      "destination": {
+        "service": "media"
+      }
+    },
     {
       "source": "/api/(.*)",
       "destination": {
