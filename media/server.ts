@@ -17,6 +17,7 @@ let signingTokenCache: {
 
 const generationInFlight = new Map<string, Promise<void>>();
 const knownExisting = new Set<string>();
+const originalPathCache = new Map<string, string>();
 
 function blobConfigured() {
   return Boolean(
@@ -37,6 +38,19 @@ async function blobExists(pathname: string): Promise<boolean> {
   return true;
 }
 
+async function resolveOriginalPath(name: string): Promise<string | null> {
+  const cached = originalPathCache.get(name);
+  if (cached) return cached;
+
+  for (const pathname of [`originals/${name}`, name]) {
+    if (await blobExists(pathname)) {
+      originalPathCache.set(name, pathname);
+      return pathname;
+    }
+  }
+  return null;
+}
+
 async function readBlob(pathname: string): Promise<Buffer | null> {
   const result = await get(pathname, { access: "private" });
   if (!result || result.statusCode !== 200 || !result.stream) return null;
@@ -51,7 +65,10 @@ async function generateVariant(variant: "thumbs" | "large", name: string) {
   if (existingJob) return existingJob;
 
   const job = (async () => {
-    const source = await readBlob(`originals/${name}`);
+    const sourcePath = await resolveOriginalPath(name);
+    if (!sourcePath) throw new Error(`Original blob not found: ${name}`);
+
+    const source = await readBlob(sourcePath);
     if (!source) throw new Error(`Original blob not found: ${name}`);
 
     const body = await sharp(source)
@@ -83,21 +100,6 @@ async function generateVariant(variant: "thumbs" | "large", name: string) {
   }
 }
 
-async function ensureImage(variant: string, name: string): Promise<boolean> {
-  if (variant === "originals") return blobExists(`originals/${name}`);
-  if (variant !== "thumbs" && variant !== "large") return false;
-
-  try {
-    await generateVariant(variant, name);
-    return true;
-  } catch (error) {
-    if (error instanceof Error && error.message.startsWith("Original blob not found:")) {
-      return false;
-    }
-    throw error;
-  }
-}
-
 async function getSigningToken() {
   if (signingTokenCache && signingTokenCache.expiresAt > Date.now() + 60_000) {
     return signingTokenCache.value;
@@ -117,11 +119,16 @@ async function imageRedirect(variant: string, name: string) {
     return new Response("Not found", { status: 404 });
   }
 
-  if (!(await ensureImage(variant, name))) {
-    return new Response("Not found", { status: 404 });
+  let pathname: string;
+  if (variant === "originals") {
+    const sourcePath = await resolveOriginalPath(name);
+    if (!sourcePath) return new Response("Not found", { status: 404 });
+    pathname = sourcePath;
+  } else {
+    await generateVariant(variant as "thumbs" | "large", name);
+    pathname = `${variant}/${name}`;
   }
 
-  const pathname = `${variant}/${name}`;
   const token = await getSigningToken();
   const { presignedUrl } = await presignUrl(token, {
     operation: "get",
