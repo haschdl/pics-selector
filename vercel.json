@@ -7,7 +7,9 @@
     },
     "frontend": {
       "root": "frontend",
-      "framework": "vite"
+      "framework": "vite",
+      "installCommand": "bun install",
+      "buildCommand": "bun run build"
     }
   },
   "rewrites": [
