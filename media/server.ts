@@ -1,4 +1,4 @@
-import { get, head, issueSignedToken, presignUrl, put } from "@vercel/blob";
+import { get, issueSignedToken, presignUrl, put } from "@vercel/blob";
 import sharp from "sharp";
 
 const NAME_RE = /^IMG_(\d+)\.jpg$/i;
@@ -29,14 +29,12 @@ function blobConfigured() {
 async function blobExists(pathname: string): Promise<boolean> {
   if (knownExisting.has(pathname)) return true;
 
-  try {
-    await head(pathname);
-    knownExisting.add(pathname);
-    return true;
-  } catch (error) {
-    if (error instanceof Error && error.name === "BlobNotFoundError") return false;
-    throw error;
-  }
+  const result = await get(pathname, { access: "private" });
+  if (!result || result.statusCode !== 200) return false;
+
+  await result.stream?.cancel();
+  knownExisting.add(pathname);
+  return true;
 }
 
 async function readBlob(pathname: string): Promise<Buffer | null> {
