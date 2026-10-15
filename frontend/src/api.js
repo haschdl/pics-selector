@@ -32,11 +32,15 @@ export async function saveSession(session) {
 }
 
 export function thumbUrl(name) {
-  return `/api/thumb/${encodeURIComponent(name)}`;
+  return `/media/image/thumbs/${encodeURIComponent(name)}`;
 }
 
 export function largeUrl(name) {
-  return `/api/large/${encodeURIComponent(name)}`;
+  return `/media/image/large/${encodeURIComponent(name)}`;
+}
+
+export function originalUrl(name) {
+  return `/media/image/originals/${encodeURIComponent(name)}`;
 }
 
 export function pickedFromDecisions(decisions) {
