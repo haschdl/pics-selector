@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { burstStatus, largeUrl, thumbUrl } from "./api.js";
 
 const MAX_PICKS = 2;
+const PRELOAD_BEHIND = 2;
+const PRELOAD_AHEAD = 5;
 
 export default function BurstStudio({ catalog, session, onSession, onDecide }) {
   const burst = catalog.bursts[session.burstIndex] || catalog.bursts[0];
@@ -27,6 +29,21 @@ export default function BurstStudio({ catalog, session, onSession, onDecide }) {
       behavior: "smooth",
     });
   }, [frame]);
+
+  useEffect(() => {
+    const currentIndex = catalog.photos.findIndex((item) => item.filename === frame);
+    if (currentIndex < 0) return;
+
+    const start = Math.max(0, currentIndex - PRELOAD_BEHIND);
+    const end = Math.min(catalog.photos.length, currentIndex + PRELOAD_AHEAD + 1);
+
+    for (let index = start; index < end; index += 1) {
+      if (index === currentIndex) continue;
+      const image = new Image();
+      image.decoding = "async";
+      image.src = largeUrl(catalog.photos[index].filename);
+    }
+  }, [catalog.photos, frame]);
 
   const photo = useMemo(
     () => catalog.photos.find((item) => item.filename === frame),
