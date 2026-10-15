@@ -8,4 +8,5 @@ dependencies = [
   "pillow==11.3.0",
   "python-multipart==0.0.20",
   "google-auth[requests]>=2.35,<3",
+  "psycopg[binary]>=3.2,<4",
 ]
