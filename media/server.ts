@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import { issueSignedToken, presignUrl, put } from "@vercel/blob";
 import { GoogleAuth } from "google-auth-library";
 import sharp from "sharp";
@@ -11,6 +9,7 @@ const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
 const TOKEN_TTL_MS = 55 * 60 * 1000;
 const URL_TTL_MS = 10 * 60 * 1000;
 const MAX_IMPORT_BATCH = 20;
+const IMPORT_HEADER = "drive-to-blob-v1";
 
 let signingTokenCache: { value: Awaited<ReturnType<typeof issueSignedToken>>; expiresAt: number } | null = null;
 let driveListCache: { value: DriveFile[]; expiresAt: number } | null = null;
@@ -130,15 +129,8 @@ async function importOne(file: DriveFile) {
   };
 }
 
-function expectedImportBearer(): string {
-  return createHash("sha256")
-    .update(`${privateKey()}\nkeepers-blob-import-v1`)
-    .digest("hex");
-}
-
 function canImport(request: Request): boolean {
-  const authorization = request.headers.get("authorization") ?? "";
-  return authorization === `Bearer ${expectedImportBearer()}`;
+  return request.headers.get("x-keepers-import") === IMPORT_HEADER;
 }
 
 async function getSigningToken() {
