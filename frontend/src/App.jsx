@@ -11,20 +11,23 @@ import {
   syncKeepers,
 } from "./api.js";
 
+const USERS = [
+  ["half", "Half"],
+  ["karolina", "Karolina"],
+];
+
 export default function App() {
   const [catalog, setCatalog] = useState(null);
   const [session, setSession] = useState(null);
+  const [user, setUser] = useState("half");
   const [error, setError] = useState("");
   const saveTimer = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getCatalog(), getSession()])
-      .then(([cat, ses]) => {
-        if (cancelled) return;
-        const keepers = syncKeepers(ses.keepers, pickedFromDecisions(ses.decisions));
-        setCatalog(cat);
-        setSession({ ...ses, keepers });
+    getCatalog()
+      .then((cat) => {
+        if (!cancelled) setCatalog(cat);
       })
       .catch((err) => {
         if (!cancelled) setError(err.message);
@@ -35,13 +38,31 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    setError("");
+    setSession(null);
+    getSession(user)
+      .then((ses) => {
+        if (cancelled) return;
+        const keepers = syncKeepers(ses.keepers, pickedFromDecisions(ses.decisions));
+        setSession({ ...ses, keepers });
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  useEffect(() => {
     if (!session) return;
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      saveSession(session).catch(() => {});
+      saveSession(session, user).catch(() => {});
     }, 180);
     return () => clearTimeout(saveTimer.current);
-  }, [session]);
+  }, [session, user]);
 
   const stats = useMemo(() => {
     if (!catalog || !session) return null;
@@ -107,6 +128,22 @@ export default function App() {
         <div className="mast-brand">
           <p className="mast-mark">Keepers</p>
           <p className="mast-sub">Vanessa Dias · proofs</p>
+          <div className="user-switch" aria-label="Selection owner">
+            {USERS.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={user === id ? "user-btn is-on" : "user-btn"}
+                onClick={() => {
+                  if (id === user) return;
+                  clearTimeout(saveTimer.current);
+                  setUser(id);
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
         <p className="mast-count">
           <span className="mast-num">{stats.reviewed}</span>
