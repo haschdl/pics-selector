@@ -17,12 +17,15 @@ export async function getCatalog() {
   return fetchJson("/api/catalog", "Could not read the pics folder");
 }
 
-export async function getSession() {
-  return fetchJson("/api/session", "Could not load saved progress");
+export async function getSession(user) {
+  return fetchJson(
+    `/api/session?user=${encodeURIComponent(user)}`,
+    "Could not load saved progress",
+  );
 }
 
-export async function saveSession(session) {
-  const res = await fetch("/api/session", {
+export async function saveSession(session, user) {
+  const res = await fetch(`/api/session?user=${encodeURIComponent(user)}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(session),
