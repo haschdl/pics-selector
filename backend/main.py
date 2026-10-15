@@ -5,7 +5,8 @@ import re
 import time
 from io import BytesIO
 
-from fastapi import FastAPI, HTTPException
+import psycopg
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import Response
 from google.auth.transport.requests import AuthorizedSession
 from google.oauth2 import service_account
@@ -22,8 +23,10 @@ DEFAULT_SIGNOFF = "Thank you,"
 NAME_RE = re.compile(r"^IMG_(\d+)\.jpg$", re.IGNORECASE)
 DRIVE_API = "https://www.googleapis.com/drive/v3/files"
 CATALOG_TTL_SECONDS = 300
+ALLOWED_USERS = {"half", "karolina"}
 
 _catalog_cache: tuple[float, dict, dict[str, dict]] | None = None
+_session_table_ready = False
 
 
 class SessionBody(BaseModel):
@@ -56,6 +59,41 @@ def _drive_session() -> AuthorizedSession:
         scopes=["https://www.googleapis.com/auth/drive.readonly"],
     )
     return AuthorizedSession(credentials)
+
+
+def _db_connection():
+    try:
+        return psycopg.connect(_env("DATABASE_URL"), autocommit=True)
+    except (RuntimeError, psycopg.Error) as exc:
+        raise HTTPException(503, "Neon database is unavailable") from exc
+
+
+def _ensure_session_table() -> None:
+    global _session_table_ready
+    if _session_table_ready:
+        return
+
+    with _db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS keepers_sessions (
+                    user_id text PRIMARY KEY,
+                    payload jsonb NOT NULL,
+                    updated_at timestamptz NOT NULL DEFAULT now(),
+                    CONSTRAINT keepers_sessions_user_id_check
+                        CHECK (user_id IN ('half', 'karolina'))
+                )
+                """
+            )
+    _session_table_ready = True
+
+
+def _validate_user(user: str) -> str:
+    normalized = user.strip().lower()
+    if normalized not in ALLOWED_USERS:
+        raise HTTPException(400, "User must be 'half' or 'karolina'")
+    return normalized
 
 
 def _camera_number(name: str) -> int:
@@ -221,6 +259,51 @@ def _default_session() -> dict:
     return SessionBody().model_dump()
 
 
+def _load_session(user: str) -> dict:
+    _ensure_session_table()
+    default_session = _default_session()
+
+    with _db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO keepers_sessions (user_id, payload)
+                VALUES (%s, %s::jsonb)
+                ON CONFLICT (user_id) DO NOTHING
+                """,
+                (user, SessionBody(**default_session).model_dump_json()),
+            )
+            cur.execute(
+                "SELECT payload FROM keepers_sessions WHERE user_id = %s",
+                (user,),
+            )
+            row = cur.fetchone()
+
+    if not row:
+        raise HTTPException(500, "Could not load saved progress")
+    return SessionBody.model_validate(row[0]).model_dump()
+
+
+def _save_session(user: str, body: SessionBody) -> dict:
+    _ensure_session_table()
+    payload = body.model_dump_json()
+
+    with _db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO keepers_sessions (user_id, payload, updated_at)
+                VALUES (%s, %s::jsonb, now())
+                ON CONFLICT (user_id) DO UPDATE
+                SET payload = EXCLUDED.payload,
+                    updated_at = now()
+                """,
+                (user, payload),
+            )
+
+    return body.model_dump()
+
+
 def _font(size: int):
     try:
         return ImageFont.truetype("DejaVuSans.ttf", size)
@@ -230,15 +313,16 @@ def _font(size: int):
 
 @app.get("/api/health")
 def health():
-    configured = all(
+    drive_configured = all(
         os.getenv(name)
         for name in ("GOOGLE_DRIVE_FOLDER_ID", "GOOGLE_CLIENT_EMAIL", "GOOGLE_PRIVATE_KEY")
     )
     return {
         "ok": True,
         "backend": "google-drive",
-        "driveConfigured": configured,
-        "sessionStorage": "none",
+        "driveConfigured": drive_configured,
+        "sessionStorage": "neon" if os.getenv("DATABASE_URL") else "unconfigured",
+        "users": sorted(ALLOWED_USERS),
     }
 
 
@@ -249,16 +333,15 @@ def catalog():
 
 
 @app.get("/api/session")
-def get_session():
-    # Deliberately non-persistent until the Neon-backed session store is added.
-    return _default_session()
+def get_session(user: str = Query(default="half")):
+    return _load_session(_validate_user(user))
 
 
 @app.put("/api/session")
-def put_session(body: SessionBody):
+def put_session(body: SessionBody, user: str = Query(default="half")):
     if body.target not in (20, 40):
         raise HTTPException(400, "Target must be 20 or 40")
-    return body.model_dump()
+    return _save_session(_validate_user(user), body)
 
 
 @app.get("/api/thumb/{name}")
@@ -302,7 +385,7 @@ def contact_sheet():
     )
     draw.text(
         (70, 150),
-        "Google Drive is connected. Shared session persistence is the next step.",
+        "Google Drive and Neon sessions are connected.",
         fill="#494641",
         font=body_font,
     )
