@@ -3,7 +3,7 @@ import ShortlistCarousel from "./ShortlistCarousel.jsx";
 import { pickedFromDecisions, thumbUrl } from "./api.js";
 
 export default function ShortlistWall({ session, onSession }) {
-  const [view, setView] = useState("grid");
+  const [view, setView] = useState("carousel");
   const picked = pickedFromDecisions(session.decisions);
   const keepers = session.keepers || [];
   const keeperSet = new Set(keepers);
