@@ -1,6 +1,9 @@
+import { useState } from "react";
+import ShortlistCarousel from "./ShortlistCarousel.jsx";
 import { pickedFromDecisions, thumbUrl } from "./api.js";
 
 export default function ShortlistWall({ session, onSession }) {
+  const [view, setView] = useState("grid");
   const picked = pickedFromDecisions(session.decisions);
   const keepers = session.keepers || [];
   const keeperSet = new Set(keepers);
@@ -64,26 +67,50 @@ export default function ShortlistWall({ session, onSession }) {
             </button>
           ))}
         </div>
-        <p className="wall-help">Click a print to cut it. Click again to bring it back.</p>
+        <div className="target-switch shortlist-view-switch" role="group" aria-label="Shortlist view">
+          {[
+            ["grid", "Grid"],
+            ["carousel", "Carousel"],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className={view === id ? "target-btn is-on" : "target-btn"}
+              onClick={() => setView(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="wall-help">
+          {view === "grid"
+            ? "Click a print to cut it. Click again to bring it back."
+            : "Browse enlarged picks and keep or cut without leaving the shortlist."}
+        </p>
         {keepers.length < picked.length ? (
           <button type="button" className="target-btn" onClick={restoreAll}>
             Restore cuts
           </button>
         ) : null}
       </div>
-      <div className="wall-grid">
-        {picked.map((name) => (
-          <button
-            key={name}
-            type="button"
-            className={keeperSet.has(name) ? "print" : "print is-cut"}
-            onClick={() => toggle(name)}
-          >
-            <img src={thumbUrl(name)} alt={name} />
-            <span className="print-name">{name}</span>
-          </button>
-        ))}
-      </div>
+
+      {view === "carousel" ? (
+        <ShortlistCarousel picked={picked} keepers={keepers} onToggle={toggle} />
+      ) : (
+        <div className="wall-grid">
+          {picked.map((name) => (
+            <button
+              key={name}
+              type="button"
+              className={keeperSet.has(name) ? "print" : "print is-cut"}
+              onClick={() => toggle(name)}
+            >
+              <img src={thumbUrl(name)} alt={name} />
+              <span className="print-name">{name}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
