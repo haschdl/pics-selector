@@ -1,14 +1,30 @@
-import { useState } from "react";
 import ShortlistCarousel from "./ShortlistCarousel.jsx";
-import { pickedFromDecisions, thumbUrl } from "./api.js";
+import { pickedFromDecisions } from "./api.js";
+
+const MINIMAL_SHORTLIST_CSS = `
+.mast { grid-template-columns: auto 1fr; align-items: center; gap: 14px; padding: 7px 14px; }
+.mast-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.mast-mark { margin: 0; font-size: 22px; line-height: 1; }
+.mast-sub, .mast-count { display: none; }
+.mast .user-switch { margin: 0; }
+.mast .user-btn { padding-top: 3px; padding-bottom: 3px; }
+.mast-nav { justify-self: end; gap: 12px; }
+.nav-link { padding-bottom: 2px; }
+.over-banner { display: none; }
+@media (max-width: 820px) {
+  .mast { padding: 5px 8px; gap: 8px; }
+  .mast-mark { font-size: 19px; }
+  .mast-brand { gap: 7px; }
+  .mast-nav { gap: 8px; }
+  .nav-link { font-size: 10px; }
+  .mast .user-btn { padding: 2px 5px; font-size: 10px; }
+}
+`;
 
 export default function ShortlistWall({ session, onSession }) {
-  const [view, setView] = useState("carousel");
   const picked = pickedFromDecisions(session.decisions);
   const keepers = session.keepers || [];
   const keeperSet = new Set(keepers);
-  const over = keepers.length > session.target;
-  const remaining = session.target - keepers.length;
 
   function toggle(name) {
     const next = keeperSet.has(name)
@@ -17,18 +33,12 @@ export default function ShortlistWall({ session, onSession }) {
     onSession({ keepers: next });
   }
 
-  function restoreAll() {
-    onSession({ keepers: picked });
-  }
-
   if (picked.length === 0) {
     return (
       <section className="wall">
         <div className="wall-empty">
           <p className="boot-title">The wall is empty.</p>
-          <p className="boot-copy">
-            Keep a frame on the strip first. This wall is only the photos you pinned.
-          </p>
+          <p className="boot-copy">Keep a frame on the strip first.</p>
           <button
             type="button"
             className="act act-keep"
@@ -43,74 +53,8 @@ export default function ShortlistWall({ session, onSession }) {
 
   return (
     <section className="wall">
-      <div className="wall-bar">
-        <p className="wall-meter">
-          <span className={over ? "meter-hot" : "meter-ok"}>{keepers.length}</span>
-          <span className="mast-of"> / {session.target}</span>
-          <span className="wall-note">
-            {over
-              ? `Cut ${keepers.length - session.target} more`
-              : remaining === 0
-                ? "On target"
-                : `${remaining} seats left`}
-          </span>
-        </p>
-        <div className="target-switch" role="group" aria-label="Keeper target">
-          {[20, 40].map((n) => (
-            <button
-              key={n}
-              type="button"
-              className={session.target === n ? "target-btn is-on" : "target-btn"}
-              onClick={() => onSession({ target: n })}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-        <div className="target-switch shortlist-view-switch" role="group" aria-label="Shortlist view">
-          {[
-            ["grid", "Grid"],
-            ["carousel", "Carousel"],
-          ].map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              className={view === id ? "target-btn is-on" : "target-btn"}
-              onClick={() => setView(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <p className="wall-help">
-          {view === "grid"
-            ? "Click a print to cut it. Click again to bring it back."
-            : "Browse enlarged picks and keep or cut without leaving the shortlist."}
-        </p>
-        {keepers.length < picked.length ? (
-          <button type="button" className="target-btn" onClick={restoreAll}>
-            Restore cuts
-          </button>
-        ) : null}
-      </div>
-
-      {view === "carousel" ? (
-        <ShortlistCarousel picked={picked} keepers={keepers} onToggle={toggle} />
-      ) : (
-        <div className="wall-grid">
-          {picked.map((name) => (
-            <button
-              key={name}
-              type="button"
-              className={keeperSet.has(name) ? "print" : "print is-cut"}
-              onClick={() => toggle(name)}
-            >
-              <img src={thumbUrl(name)} alt={name} />
-              <span className="print-name">{name}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      <style>{MINIMAL_SHORTLIST_CSS}</style>
+      <ShortlistCarousel picked={picked} keepers={keepers} onToggle={toggle} />
     </section>
   );
 }
