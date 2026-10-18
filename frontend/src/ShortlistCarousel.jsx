@@ -3,10 +3,10 @@ import { largeUrl } from "./api.js";
 
 const CAROUSEL_CSS = `
 .wall { display: flex; flex-direction: column; overflow: hidden; padding: 8px 10px 10px; }
-.short-carousel { flex: 1; min-height: 0; display: flex; }
-.short-carousel-main { position: relative; flex: 1; min-height: 0; background: var(--well); overflow: hidden; }
-.carousel-photo-wrap { position: absolute; inset: 0; display: grid; place-items: center; }
-.carousel-photo { width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; }
+.short-carousel { flex: 1 1 0; min-width: 0; min-height: 0; width: 100%; overflow: hidden; display: flex; }
+.short-carousel-main { position: relative; flex: 1 1 0; width: 100%; min-width: 0; min-height: 0; height: 100%; background: var(--well); overflow: hidden; }
+.carousel-photo-wrap { position: absolute; inset: 0; overflow: hidden; }
+.carousel-photo { position: absolute; inset: 0; margin: auto; width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; object-position: center; display: block; }
 .carousel-arrow { position: absolute; z-index: 2; top: 50%; transform: translateY(-50%); width: 42px; height: 64px; border: 0; background: rgba(18,21,22,.38); color: var(--paper); font-size: 28px; backdrop-filter: blur(4px); }
 .carousel-arrow-prev { left: 10px; }
 .carousel-arrow-next { right: 10px; }
