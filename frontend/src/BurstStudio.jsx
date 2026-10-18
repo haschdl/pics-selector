@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { burstStatus, largeUrl, thumbUrl } from "./api.js";
 
-const MAX_PICKS = 2;
 const PRELOAD_BEHIND = 2;
 const PRELOAD_AHEAD = 5;
 
@@ -60,7 +59,6 @@ export default function BurstStudio({ catalog, session, onSession, onDecide }) {
       onDecide(burst, { picks: picks.filter((item) => item !== name), skipped: false });
       return;
     }
-    if (picks.length >= MAX_PICKS) return;
     onDecide(burst, { picks: [...picks, name], skipped: false });
   }
 
@@ -123,7 +121,6 @@ export default function BurstStudio({ catalog, session, onSession, onDecide }) {
 
   const frameNo = frame.replace("IMG_", "").replace(".jpg", "");
   const keptHere = picks.length;
-  const atCap = keptHere >= MAX_PICKS && !picks.includes(frame);
 
   return (
     <section className="studio">
@@ -152,7 +149,7 @@ export default function BurstStudio({ catalog, session, onSession, onDecide }) {
           <span className="meta-gap">·</span>
           {photo?.orientation}
           <span className="meta-gap">·</span>
-          {keptHere} of {MAX_PICKS} kept
+          {keptHere} kept
         </p>
       </div>
 
@@ -170,7 +167,6 @@ export default function BurstStudio({ catalog, session, onSession, onDecide }) {
             type="button"
             className={picks.includes(frame) ? "act act-keep is-on" : "act act-keep"}
             onClick={() => toggleKeep()}
-            disabled={atCap}
           >
             {picks.includes(frame) ? "Unpin this frame" : "Keep this frame"}
           </button>
@@ -189,9 +185,6 @@ export default function BurstStudio({ catalog, session, onSession, onDecide }) {
             <br />
             K keep · X skip · N next
           </p>
-          {atCap ? (
-            <p className="cap-hint">Two frames already kept in this pose. Unpin one to swap.</p>
-          ) : null}
         </aside>
       </div>
 
