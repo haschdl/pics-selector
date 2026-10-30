@@ -27,6 +27,12 @@ function blobConfigured() {
   );
 }
 
+function validSiteToken(url: URL) {
+  const expected = process.env.SITE_ACCESS_TOKEN;
+  const supplied = url.searchParams.get("token");
+  return Boolean(expected && supplied && supplied === expected);
+}
+
 async function blobExists(pathname: string): Promise<boolean> {
   if (knownExisting.has(pathname)) return true;
 
@@ -150,6 +156,10 @@ Bun.serve({
   async fetch(request) {
     try {
       const url = new URL(request.url);
+
+      if (url.pathname.startsWith("/media/") && !validSiteToken(url)) {
+        return new Response("Unauthorized", { status: 401 });
+      }
 
       if (request.method === "GET" && url.pathname === "/media/health") {
         return Response.json({
