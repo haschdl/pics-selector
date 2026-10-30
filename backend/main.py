@@ -3,11 +3,12 @@ from __future__ import annotations
 import json
 import os
 import re
+import secrets
 import time
 from io import BytesIO
 
 import psycopg
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import Response
 from google.auth.transport.requests import AuthorizedSession
 from google.oauth2 import service_account
@@ -45,6 +46,19 @@ def _env(name: str) -> str:
     if not value:
         raise RuntimeError(f"Missing required environment variable: {name}")
     return value
+
+
+def _valid_site_token(request: Request) -> bool:
+    expected = os.getenv("SITE_ACCESS_TOKEN")
+    supplied = request.query_params.get("token")
+    return bool(expected and supplied and secrets.compare_digest(supplied, expected))
+
+
+@app.middleware("http")
+async def require_site_token(request: Request, call_next):
+    if request.url.path.startswith("/api/") and not _valid_site_token(request):
+        return Response("Unauthorized", status_code=401)
+    return await call_next(request)
 
 
 def _session_user(user: str) -> str:
