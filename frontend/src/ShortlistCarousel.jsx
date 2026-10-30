@@ -14,6 +14,7 @@ const CAROUSEL_CSS = `
 .carousel-arrow:disabled { opacity: .16; cursor: default; }
 .carousel-overlay { position: absolute; z-index: 2; left: 10px; right: 10px; bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 12px; pointer-events: none; }
 .carousel-caption { display: flex; gap: 12px; align-items: center; padding: 7px 10px; background: rgba(18,21,22,.62); color: var(--paper); font-family: var(--type-file); font-size: 11px; backdrop-filter: blur(4px); }
+.carousel-count { color: var(--brass); }
 .carousel-actions { display: flex; align-items: center; gap: 6px; pointer-events: auto; }
 .carousel-toggle, .carousel-unpick { border: 0; padding: 8px 12px; background: rgba(18,21,22,.68); color: var(--paper); font-family: var(--type-file); font-size: 11px; backdrop-filter: blur(4px); }
 .carousel-toggle:hover, .carousel-unpick:hover { background: var(--brass); color: var(--ink); }
