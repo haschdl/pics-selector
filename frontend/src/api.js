@@ -1,11 +1,25 @@
+function accessToken() {
+  return new URLSearchParams(window.location.search).get("token") || "";
+}
+
+function withAccessToken(path) {
+  const token = accessToken();
+  if (!token) throw new Error("Access denied: add the required token to the URL");
+  const url = new URL(path, window.location.origin);
+  url.searchParams.set("token", token);
+  return `${url.pathname}${url.search}`;
+}
+
 async function fetchJson(url, errorMessage) {
   let lastError = new Error(errorMessage);
   for (let attempt = 0; attempt < 25; attempt += 1) {
     try {
-      const res = await fetch(url);
+      const res = await fetch(withAccessToken(url));
       if (res.ok) return res.json();
+      if (res.status === 401) throw new Error("Access denied: invalid token");
       lastError = new Error(errorMessage);
     } catch (err) {
+      if (err instanceof Error && err.message.startsWith("Access denied:")) throw err;
       lastError = err instanceof Error ? err : new Error(errorMessage);
     }
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -25,21 +39,22 @@ export async function getSession(user) {
 }
 
 export async function saveSession(session, user) {
-  const res = await fetch(`/api/session?user=${encodeURIComponent(user)}`, {
+  const res = await fetch(withAccessToken(`/api/session?user=${encodeURIComponent(user)}`), {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(session),
   });
+  if (res.status === 401) throw new Error("Access denied: invalid token");
   if (!res.ok) throw new Error("Could not save progress");
   return res.json();
 }
 
 export function thumbUrl(name) {
-  return `/media/image/thumbs/${encodeURIComponent(name)}`;
+  return withAccessToken(`/media/image/thumbs/${encodeURIComponent(name)}`);
 }
 
 export function largeUrl(name) {
-  return `/media/image/large/${encodeURIComponent(name)}`;
+  return withAccessToken(`/media/image/large/${encodeURIComponent(name)}`);
 }
 
 export function pickedFromDecisions(decisions) {
