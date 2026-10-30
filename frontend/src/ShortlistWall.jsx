@@ -1,5 +1,5 @@
 import ShortlistCarousel from "./ShortlistCarousel.jsx";
-import { pickedFromDecisions } from "./api.js";
+import { pickedFromDecisions, syncKeepers } from "./api.js";
 
 const MINIMAL_SHORTLIST_CSS = `
 .mast { grid-template-columns: auto 1fr; align-items: center; gap: 14px; padding: 7px 14px; }
@@ -33,6 +33,27 @@ export default function ShortlistWall({ session, onSession }) {
     onSession({ keepers: next });
   }
 
+  function unpick(name) {
+    const decisions = { ...session.decisions };
+
+    for (const [burstId, decision] of Object.entries(decisions)) {
+      if (!decision?.picks?.includes(name)) continue;
+      const picks = decision.picks.filter((item) => item !== name);
+      if (picks.length === 0 && !decision.skipped) {
+        delete decisions[burstId];
+      } else {
+        decisions[burstId] = { ...decision, picks };
+      }
+      break;
+    }
+
+    const nextPicked = pickedFromDecisions(decisions);
+    onSession({
+      decisions,
+      keepers: syncKeepers(keepers, nextPicked),
+    });
+  }
+
   if (picked.length === 0) {
     return (
       <section className="wall">
@@ -54,7 +75,12 @@ export default function ShortlistWall({ session, onSession }) {
   return (
     <section className="wall">
       <style>{MINIMAL_SHORTLIST_CSS}</style>
-      <ShortlistCarousel picked={picked} keepers={keepers} onToggle={toggle} />
+      <ShortlistCarousel
+        picked={picked}
+        keepers={keepers}
+        onToggle={toggle}
+        onUnpick={unpick}
+      />
     </section>
   );
 }
