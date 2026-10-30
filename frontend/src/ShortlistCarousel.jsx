@@ -14,26 +14,37 @@ const CAROUSEL_CSS = `
 .carousel-arrow:disabled { opacity: .16; cursor: default; }
 .carousel-overlay { position: absolute; z-index: 2; left: 10px; right: 10px; bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 12px; pointer-events: none; }
 .carousel-caption { display: flex; gap: 12px; align-items: center; padding: 7px 10px; background: rgba(18,21,22,.62); color: var(--paper); font-family: var(--type-file); font-size: 11px; backdrop-filter: blur(4px); }
-.carousel-count { color: var(--brass); }
-.carousel-toggle { pointer-events: auto; border: 0; padding: 8px 12px; background: rgba(18,21,22,.68); color: var(--paper); font-family: var(--type-file); font-size: 11px; backdrop-filter: blur(4px); }
-.carousel-toggle:hover { background: var(--brass); color: var(--ink); }
+.carousel-actions { display: flex; align-items: center; gap: 6px; pointer-events: auto; }
+.carousel-toggle, .carousel-unpick { border: 0; padding: 8px 12px; background: rgba(18,21,22,.68); color: var(--paper); font-family: var(--type-file); font-size: 11px; backdrop-filter: blur(4px); }
+.carousel-toggle:hover, .carousel-unpick:hover { background: var(--brass); color: var(--ink); }
 .carousel-toggle.is-cut { background: var(--skip); color: #fff; }
+.carousel-unpick { border: 1px solid rgba(255,255,255,.38); }
 @media (max-width: 820px) {
   .wall { padding: 5px 6px 6px; }
-  .carousel-arrow { width: 34px; height: 54px; font-size: 22px; }
+  .carousel-arrow { width: 44px; height: 60px; font-size: 22px; }
   .carousel-arrow-prev { left: 6px; }
   .carousel-arrow-next { right: 6px; }
-  .carousel-overlay { left: 6px; right: 6px; bottom: 6px; }
-  .carousel-caption { font-size: 10px; padding: 6px 8px; }
-  .carousel-toggle { font-size: 10px; padding: 7px 9px; }
+  .carousel-overlay { left: 6px; right: 6px; bottom: max(6px, env(safe-area-inset-bottom)); gap: 8px; }
+  .carousel-caption { font-size: 10px; padding: 7px 8px; }
+  .carousel-actions { gap: 5px; }
+  .carousel-toggle, .carousel-unpick { min-height: 44px; font-size: 10px; padding: 8px 10px; }
+}
+@media (max-width: 430px) {
+  .carousel-caption { gap: 7px; max-width: 52%; overflow: hidden; }
+  .carousel-caption span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .carousel-actions { flex-shrink: 0; }
 }
 `;
 
-export default function ShortlistCarousel({ picked, keepers, onToggle }) {
+export default function ShortlistCarousel({ picked, keepers, onToggle, onUnpick }) {
   const [index, setIndex] = useState(0);
   const keeperSet = useMemo(() => new Set(keepers), [keepers]);
   const safeIndex = Math.max(0, Math.min(picked.length - 1, index));
   const current = picked[safeIndex];
+
+  useEffect(() => {
+    if (index !== safeIndex) setIndex(safeIndex);
+  }, [index, safeIndex]);
 
   useEffect(() => {
     if (!current) return;
@@ -101,13 +112,23 @@ export default function ShortlistCarousel({ picked, keepers, onToggle }) {
             <span>{current}</span>
             <span className="carousel-count">{safeIndex + 1} / {picked.length}</span>
           </div>
-          <button
-            type="button"
-            className={kept ? "carousel-toggle" : "carousel-toggle is-cut"}
-            onClick={() => onToggle(current)}
-          >
-            {kept ? "Cut" : "Restore"}
-          </button>
+          <div className="carousel-actions">
+            <button
+              type="button"
+              className="carousel-unpick"
+              onClick={() => onUnpick(current)}
+              aria-label={`Unpick ${current}`}
+            >
+              Unpick
+            </button>
+            <button
+              type="button"
+              className={kept ? "carousel-toggle" : "carousel-toggle is-cut"}
+              onClick={() => onToggle(current)}
+            >
+              {kept ? "Cut" : "Restore"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
