@@ -123,6 +123,34 @@ button {
   gap: 18px;
 }
 
+.target-editor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 5px;
+  color: #2c3331;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.target-editor input {
+  box-sizing: border-box;
+  width: 60px;
+  min-height: 28px;
+  padding: 3px 5px;
+  border: 1px solid #7a8480;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  font: 13px var(--type-file);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.target-editor input:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
 .nav-link {
   background: none;
   border: 0;
