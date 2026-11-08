@@ -32,7 +32,7 @@ _catalog_cache: tuple[float, dict, dict[str, dict]] | None = None
 
 class SessionBody(BaseModel):
     version: int = 1
-    target: int = 20
+    target: int = Field(default=20, ge=1, le=10000)
     stage: str = "strip"
     burstIndex: int = 0
     decisions: dict = Field(default_factory=dict)
@@ -327,8 +327,6 @@ def get_session(user: str = "half"):
 
 @app.put("/api/session")
 def put_session(body: SessionBody, user: str = "half"):
-    if body.target not in (20, 40):
-        raise HTTPException(400, "Target must be 20 or 40")
     return _save_session(_session_user(user), body)
 
 
