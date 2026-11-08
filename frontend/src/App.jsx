@@ -16,6 +16,44 @@ const USERS = [
   ["karolina", "Karolina"],
 ];
 
+function TargetEditor({ target, onChange }) {
+  const [draft, setDraft] = useState(String(target));
+
+  useEffect(() => {
+    setDraft(String(target));
+  }, [target]);
+
+  function commit() {
+    const value = Number(draft);
+    if (Number.isSafeInteger(value) && value >= 1 && value <= 10000) {
+      if (value !== target) onChange(value);
+      setDraft(String(value));
+    } else {
+      setDraft(String(target));
+    }
+  }
+
+  return (
+    <label className="target-editor">
+      <span>Target</span>
+      <input
+        aria-label="Shortlist target"
+        type="number"
+        min="1"
+        max="10000"
+        step="1"
+        inputMode="numeric"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") event.currentTarget.blur();
+        }}
+      />
+    </label>
+  );
+}
+
 export default function App() {
   const [catalog, setCatalog] = useState(null);
   const [session, setSession] = useState(null);
@@ -154,6 +192,7 @@ export default function App() {
           <span className="mast-of"> · target {session.target}</span>
         </p>
         <nav className="mast-nav" aria-label="Stages">
+          <TargetEditor key={user} target={session.target} onChange={(target) => updateSession({ target })} />
           {[
             ["strip", "Strip"],
             ["shortlist", "Shortlist"],
